@@ -21,25 +21,33 @@ export default function LoginPage() {
               alt="NAP WORKSPACE"
               className="h-20 mx-auto"
             />
-            <h1 className="text-2xl font-bold">{SITE_CONFIG.companyName}</h1>
+            <h1 className="text-2xl font-bold text-black">
+              {SITE_CONFIG.companyName}
+            </h1>
           </div>
 
           <form className="space-y-4">
             <div>
-              <Label className="mb-2" htmlFor="email">
+              <Label className="mb-2 text-black" htmlFor="email">
                 Email
               </Label>
-              <Input id="email" type="email" placeholder="Nhập email" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Nhập email"
+                className="bg-white text-black border border-gray-300 dark:bg-white dark:text-black dark:border-gray-300"
+              />
             </div>
 
             <div>
-              <Label className="mb-2" htmlFor="password">
+              <Label className="mb-2 text-black" htmlFor="password">
                 Mật khẩu
               </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Nhập mật khẩu"
+                className="bg-white text-black border border-gray-300 dark:bg-white dark:text-black dark:border-gray-300"
               />
             </div>
 
@@ -47,7 +55,10 @@ export default function LoginPage() {
               Quên mật khẩu?
             </div>
 
-            <Button className="w-full mt-2" type="submit">
+            <Button
+              className="w-full mt-2 bg-[#111827] text-white hover:bg-[#111827] cursor-pointer"
+              type="submit"
+            >
               Đăng nhập
             </Button>
           </form>

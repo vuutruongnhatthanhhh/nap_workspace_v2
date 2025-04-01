@@ -16,7 +16,7 @@ import { useTheme } from "next-themes";
 
 type HeaderProps = {
   search: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange?: (value: string) => void;
   showSearch?: boolean;
   bgColor?: string;
   showThemeToggle?: boolean;
@@ -42,7 +42,7 @@ export default function Header({
   }, [theme]);
   return (
     <div
-      className={`p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 ${bgColor}`}
+      className={`p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${bgColor}`}
     >
       <div className="flex items-center gap-3">
         <Image src="/nap-logo.png" alt="Logo" width={50} height={50} />
@@ -58,7 +58,7 @@ export default function Header({
             placeholder="Tìm kiếm ứng dụng..."
             className="w-[300px] sm:w-[360px] !bg-white/90 text-black placeholder:text-gray-500"
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange?.(e.target.value)}
           />
         )}
         {showThemeToggle && isMounted && (

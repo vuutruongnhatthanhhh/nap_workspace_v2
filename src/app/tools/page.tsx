@@ -1,21 +1,13 @@
 "use client";
 
-import Header from "@/components/layout/Header";
-
 export default function SimplePage() {
   return (
     <>
-      <Header
-        search=""
-        onSearchChange={() => {}}
-        showSearch={false}
-        bgColor="bg-[#111827] dark:border-white border-b border-transparent"
-      />
-      <section className="flex items-center justify-center h-full text-center p-6 ">
-        <h1 className="text-3xl sm:text-4xl font-bold">
-          Chào mừng quay lại 👋✨
+      <div>
+        <h1 className="text-xl font-bold text-black dark:text-white mb-6">
+          Nén file / folder
         </h1>
-      </section>
+      </div>
     </>
   );
 }
