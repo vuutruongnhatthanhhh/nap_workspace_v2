@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { SITE_CONFIG } from "@/constants/site";
 import Header from "@/components/layout/Header";
+import Link from "next/link";
 
 const categories = [
   "Tất cả",
@@ -17,16 +18,19 @@ const apps = [
     name: "Nhân sự",
     icon: "/apps/user-icon.webp",
     category: "Quản trị nguồn nhân lực",
+    path: "/users",
   },
   {
     name: "Công cụ",
     icon: "/apps/tool-icon.png",
     category: "Tiện ích",
+    path: "/tools",
   },
   {
     name: "Giao hàng",
     icon: "/apps/truck-icon.webp",
     category: "Marketing - Bán hàng",
+    path: "/giao-hang",
   },
 ];
 
@@ -89,8 +93,9 @@ export default function Home() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-6xl mx-auto">
           {filteredApps.length > 0 ? (
             filteredApps.map((app, idx) => (
-              <div
+              <Link
                 key={idx}
+                href={app.path}
                 className="flex flex-col items-center justify-center text-center space-y-1 hover:scale-105 transition-transform duration-200 hover:bg-white/10 rounded-xl p-2 cursor-pointer"
               >
                 <div className="w-20 h-20 relative mb-2">
@@ -104,7 +109,7 @@ export default function Home() {
                 <div className="text-sm font-medium leading-tight px-1 text-white">
                   {app.name}
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <div className="col-span-full text-center text-white/70 italic">

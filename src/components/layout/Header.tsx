@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 
 type HeaderProps = {
   search: string;
@@ -44,12 +45,14 @@ export default function Header({
     <div
       className={`p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${bgColor}`}
     >
-      <div className="flex items-center gap-3">
-        <Image src="/nap-logo.png" alt="Logo" width={50} height={50} />
-        <h1 className="text-xl font-light italic tracking-widest drop-shadow-sm font-serif text-white">
-          {SITE_CONFIG.companyName}
-        </h1>
-      </div>
+      <Link href="/home">
+        <div className="flex items-center gap-3 cursor-pointer">
+          <Image src="/nap-logo.png" alt="Logo" width={50} height={50} />
+          <h1 className="text-xl font-light italic tracking-widest drop-shadow-sm font-serif text-white">
+            {SITE_CONFIG.companyName}
+          </h1>
+        </div>
+      </Link>
 
       <div className="flex items-center gap-4">
         {showSearch && (
