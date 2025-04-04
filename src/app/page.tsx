@@ -35,7 +35,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="Nhập email"
-                className="bg-white text-black border border-gray-300 dark:bg-white dark:text-black dark:border-gray-300"
+                className="bg-white text-black border border-gray-300"
               />
             </div>
 
@@ -47,7 +47,7 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="Nhập mật khẩu"
-                className="bg-white text-black border border-gray-300 dark:bg-white dark:text-black dark:border-gray-300"
+                className="bg-white text-black border border-gray-300"
               />
             </div>
 

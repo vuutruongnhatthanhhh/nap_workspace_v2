@@ -11,10 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { toast } from "sonner";
 
 interface Employee {
   id: string;
@@ -34,8 +34,27 @@ interface Employee {
   status: string;
 }
 
+const fieldLabels: Record<keyof Employee, string> = {
+  id: "Mã nhân viên",
+  name: "Họ tên",
+  position: "Chức vụ",
+  department: "Phòng ban",
+  avatar: "Ảnh đại diện",
+  gender: "Giới tính",
+  birthDate: "Ngày sinh",
+  phone: "Điện thoại",
+  email: "Email",
+  probationDate: "Ngày thử việc",
+  officialDate: "Ngày chính thức",
+  contractType: "Loại HĐ",
+  seniority: "Thâm niên",
+  insurance: "Bảo hiểm",
+  status: "Trạng thái",
+};
+
 export default function EmployeeManagement() {
   const [search, setSearch] = useState("");
+  const [openAddDialog, setOpenAddDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
@@ -58,13 +77,58 @@ export default function EmployeeManagement() {
       insurance: "Có",
       status: "Đang làm việc",
     },
+    {
+      id: "IT12346",
+      name: "Nguyễn Văn A",
+      position: "Nhân viên kinh doanh",
+      department: "Phòng Kinh doanh",
+      avatar: "/avatar-user.jpg",
+      gender: "Nam",
+      birthDate: "1995-08-15",
+      phone: "0912345678",
+      email: "vana@example.com",
+      probationDate: "2023-01-01",
+      officialDate: "2023-04-01",
+      contractType: "HĐLĐ 1 năm",
+      seniority: "1 năm",
+      insurance: "Có",
+      status: "Đang làm việc",
+    },
+    {
+      id: "IT12347",
+      name: "Vưu Trường Nhật Thanh",
+      position: "Nhân viên kinh doanh",
+      department: "Phòng Kinh doanh",
+      avatar: "/avatar-user.jpg",
+      gender: "Nam",
+      birthDate: "1995-08-15",
+      phone: "0912345678",
+      email: "vana@example.com",
+      probationDate: "2023-01-01",
+      officialDate: "2023-04-01",
+      contractType: "HĐLĐ 1 năm",
+      seniority: "1 năm",
+      insurance: "Có",
+      status: "Đang làm việc",
+    },
   ]);
 
-  const [newEmployee, setNewEmployee] = useState({
+  const [newEmployee, setNewEmployee] = useState<Employee>({
+    id: "",
     name: "",
     position: "",
     department: "",
     avatar: "/avatar-user.jpg",
+    gender: "",
+    birthDate: "",
+    phone: "",
+    email: "",
+    probationDate: "",
+    officialDate: "",
+    contractType: "",
+    seniority: "",
+    insurance: "",
+    status: "",
   });
 
   const handleDelete = (id: string) => {
@@ -87,28 +151,49 @@ export default function EmployeeManagement() {
     setEditMode(false);
   };
 
-  const handleAddEmployee = () => {
-    const newEmp: Employee = {
-      id: `IT${Math.floor(Math.random() * 100000)}`,
-      gender: "Chưa cập nhật",
-      birthDate: "",
-      phone: "",
-      email: "",
-      probationDate: "",
-      officialDate: "",
-      contractType: "",
-      seniority: "",
-      insurance: "",
-      status: "",
-      ...newEmployee,
-    };
-    setEmployees((prev) => [...prev, newEmp]);
-    setNewEmployee({
-      name: "",
-      position: "",
-      department: "",
-      avatar: "/avatar-user.jpg",
-    });
+  const handleAddEmployee = async () => {
+    try {
+      const res = await fetch("/api/employee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEmployee),
+      });
+
+      if (!res.ok) {
+        const text = await res.text(); // xem lỗi gì
+        throw new Error(`API Error: ${res.status} - ${text}`);
+      }
+
+      const created: Employee = await res.json();
+
+      // setEmployees((prev) => [...prev, created]);
+      setNewEmployee({
+        id: "",
+        name: "",
+        position: "",
+        department: "",
+        avatar: "/avatar-user.jpg",
+        gender: "",
+        birthDate: "",
+        phone: "",
+        email: "",
+        probationDate: "",
+        officialDate: "",
+        contractType: "",
+        seniority: "",
+        insurance: "",
+        status: "",
+      });
+      toast.custom((t) => (
+        <div className="bg-green-500 text-white px-4 py-2 rounded shadow-md">
+          Thêm nhân sự thành công 🎉
+        </div>
+      ));
+      setOpenAddDialog(false);
+    } catch (error) {
+      console.error("Lỗi khi thêm nhân sự:", error);
+      toast.error("Lỗi khi thêm nhân sự 😢");
+    }
   };
 
   const filteredEmployees = employees.filter((emp) =>
@@ -129,17 +214,27 @@ export default function EmployeeManagement() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <Dialog>
+        {/* add user */}
+        <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
           <DialogTrigger asChild>
             <Button>+ Thêm nhân sự</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Thêm nhân sự mới</DialogTitle>
+              <DialogTitle className="mb-6">Thêm nhân sự</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Họ tên</Label>
+                <Label className="mb-2">Mã nhân viên</Label>
+                <Input
+                  value={newEmployee.id}
+                  onChange={(e) =>
+                    setNewEmployee({ ...newEmployee, id: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Họ tên</Label>
                 <Input
                   value={newEmployee.name}
                   onChange={(e) =>
@@ -148,7 +243,7 @@ export default function EmployeeManagement() {
                 />
               </div>
               <div>
-                <Label>Chức vụ</Label>
+                <Label className="mb-2">Chức vụ</Label>
                 <Input
                   value={newEmployee.position}
                   onChange={(e) =>
@@ -157,7 +252,7 @@ export default function EmployeeManagement() {
                 />
               </div>
               <div>
-                <Label>Phòng ban</Label>
+                <Label className="mb-2">Phòng ban</Label>
                 <Input
                   value={newEmployee.department}
                   onChange={(e) =>
@@ -168,12 +263,124 @@ export default function EmployeeManagement() {
                   }
                 />
               </div>
+              <div>
+                <Label className="mb-2">Giới tính</Label>
+                <Input
+                  value={newEmployee.gender || ""}
+                  onChange={(e) =>
+                    setNewEmployee({ ...newEmployee, gender: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Ngày sinh</Label>
+                <Input
+                  type="date"
+                  value={newEmployee.birthDate || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      birthDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Điện thoại</Label>
+                <Input
+                  value={newEmployee.phone || ""}
+                  onChange={(e) =>
+                    setNewEmployee({ ...newEmployee, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Email</Label>
+                <Input
+                  value={newEmployee.email || ""}
+                  onChange={(e) =>
+                    setNewEmployee({ ...newEmployee, email: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Ngày thử việc</Label>
+                <Input
+                  type="date"
+                  value={newEmployee.probationDate || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      probationDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Ngày chính thức</Label>
+                <Input
+                  type="date"
+                  value={newEmployee.officialDate || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      officialDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Loại hợp đồng</Label>
+                <Input
+                  value={newEmployee.contractType || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      contractType: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Thâm niên</Label>
+                <Input
+                  value={newEmployee.seniority || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      seniority: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Bảo hiểm</Label>
+                <Input
+                  value={newEmployee.insurance || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      insurance: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-2">Trạng thái</Label>
+                <Input
+                  value={newEmployee.status || ""}
+                  onChange={(e) =>
+                    setNewEmployee({ ...newEmployee, status: e.target.value })
+                  }
+                />
+              </div>
               <Button onClick={handleAddEmployee}>Lưu</Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* table */}
       <Card>
         <CardContent className="overflow-x-auto">
           <table className="w-full table-fixed text-sm min-w-[500px]">
@@ -214,11 +421,13 @@ export default function EmployeeManagement() {
                       </td>
                     </tr>
                   </DialogTrigger>
+
+                  {/* detail user  */}
                   <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <div className="flex justify-between items-start gap-4">
+                      <div className="flex justify-between items-start pr-10">
                         <DialogTitle>Thông tin nhân sự</DialogTitle>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mt-1">
                           <Pencil
                             className="w-5 h-5 cursor-pointer"
                             onClick={() => setEditMode(true)}
@@ -234,8 +443,8 @@ export default function EmployeeManagement() {
                       <Image
                         src={emp.avatar}
                         alt={emp.name}
-                        width={120}
-                        height={120}
+                        width={200}
+                        height={200}
                         className="border object-cover rounded-md"
                       />
                       <div className="grid grid-cols-1 gap-2 w-full text-sm break-words whitespace-normal">
@@ -243,10 +452,7 @@ export default function EmployeeManagement() {
                           ([key, value]) => (
                             <p key={key} className="break-words">
                               <strong>
-                                {key
-                                  .replace(/([A-Z])/g, " $1")
-                                  .replace(/^./, (s) => s.toUpperCase())}
-                                :
+                                {fieldLabels[key as keyof Employee] || key}:
                               </strong>
                               {editMode ? (
                                 <Input
