@@ -6,8 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONFIG } from "@/constants/site";
 import { Sidebar } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
+import { useState } from "react";
 
 export default function LoginPage() {
+  const [password, setPassword] = useState("");
   return (
     <div
       className="w-full h-screen bg-cover bg-center flex items-center justify-center overflow-hidden"
@@ -43,10 +46,17 @@ export default function LoginPage() {
               <Label className="mb-2 text-black" htmlFor="password">
                 Mật khẩu
               </Label>
-              <Input
+              {/* <input
                 id="password"
                 type="password"
                 placeholder="Nhập mật khẩu"
+                className="bg-white text-black border border-gray-300"
+              /> */}
+              <PasswordInput
+                name="password"
+                placeholder="Nhập mật khẩu"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="bg-white text-black border border-gray-300"
               />
             </div>

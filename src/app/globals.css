@@ -122,3 +122,10 @@
     overscroll-behavior: none;
   }
 }
+
+input::-ms-reveal,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+  pointer-events: none;
+  opacity: 0;
+}
