@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,13 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import dayjs from "dayjs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import CustomCalendar from "@/components/Calendar";
 import ToastCustom from "@/components/Toast";
@@ -43,6 +36,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import AddEmployeeForm from "@/components/employee/AddEmployeeForm";
 
 dayjs.extend(customParseFormat);
 
@@ -88,7 +82,30 @@ const fieldLabels: Record<keyof Employee, string> = {
   permissions: "Quyền truy cập",
 };
 
+const visibleFields: (keyof Employee)[] = [
+  "id",
+  "name",
+  "position",
+  "department",
+  "gender",
+  "birthDate",
+  "phone",
+  "email",
+  "probationDate",
+  "officialDate",
+  "contractType",
+  "seniority",
+  "insurance",
+  "status",
+  "permissions",
+];
+
 export default function EmployeeManagement() {
+  const [tempAvatarFile, setTempAvatarFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [loadingAdd, setLoadingAdd] = useState(false);
+  const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -96,24 +113,38 @@ export default function EmployeeManagement() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
-  const [birthDateInput, setBirthDateInput] = useState("");
-  const [birthDateError, setBirthDateError] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const filteredEmployees = employees.filter((emp) =>
-    emp.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+  // const filteredEmployees = employees.filter((emp) =>
+  //   emp.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  // );
 
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
-  const paginatedEmployees = filteredEmployees.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((emp) =>
+      emp.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [employees, debouncedSearch]);
+
+  // const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredEmployees.length / itemsPerPage);
+  }, [filteredEmployees]);
+
+  // const paginatedEmployees = filteredEmployees.slice(
+  //   (currentPage - 1) * itemsPerPage,
+  //   currentPage * itemsPerPage
+  // );
+  const paginatedEmployees = useMemo(() => {
+    return filteredEmployees.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredEmployees, currentPage]);
 
   const [newEmployee, setNewEmployee] = useState<Employee>({
     id: "",
@@ -165,9 +196,28 @@ export default function EmployeeManagement() {
     return null;
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa nhân sự này?")) {
-      setEmployees((prev) => prev.filter((emp) => emp._id !== id));
+      try {
+        const res = await fetch(`/api/employee/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`API Error: ${res.status} - ${text}`);
+        }
+
+        toast.custom(() => (
+          <ToastCustom message="Xóa nhân sự thành công 🎉" bg="bg-green-500" />
+        ));
+
+        fetchEmployees();
+      } catch (err) {
+        console.error("Lỗi khi xóa nhân sự:", err);
+        toast.custom(() => (
+          <ToastCustom message="Lỗi khi xóa nhân sự 😢" bg="bg-red-500" />
+        ));
+      }
     }
   };
 
@@ -176,13 +226,101 @@ export default function EmployeeManagement() {
     setSelectedEmployee({ ...selectedEmployee, [field]: value });
   };
 
-  const handleSaveEdit = () => {
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp._id === selectedEmployee?._id ? selectedEmployee! : emp
-      )
+  const handleSaveEdit = async () => {
+    if (!selectedEmployee || !selectedEmployee._id) return;
+
+    const requiredFields: { [key: string]: string } = {
+      "Họ tên": selectedEmployee.name,
+      "Chức vụ": selectedEmployee.position,
+      "Giới tính": selectedEmployee.gender,
+      "Ngày sinh": selectedEmployee.birthDate,
+      "Điện thoại": selectedEmployee.phone,
+      Email: selectedEmployee.email,
+      "Trạng thái": selectedEmployee.status,
+    };
+
+    for (const [label, value] of Object.entries(requiredFields)) {
+      if (!value.trim()) {
+        toast.custom(() => (
+          <ToastCustom
+            message={`❌ ${label} không được để trống`}
+            bg="bg-red-500"
+          />
+        ));
+        return;
+      }
+    }
+
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      selectedEmployee.email
     );
-    setEditMode(false);
+    if (!isEmailValid) {
+      toast.custom(() => (
+        <ToastCustom message="❌ Email không đúng định dạng" bg="bg-red-500" />
+      ));
+      return;
+    }
+
+    const isPhoneValid = /^[0-9]{8,11}$/.test(selectedEmployee.phone);
+    if (!isPhoneValid) {
+      toast.custom(() => (
+        <ToastCustom message="❌ Số điện thoại không hợp lệ" bg="bg-red-500" />
+      ));
+      return;
+    }
+
+    setLoadingUpdate(true);
+
+    try {
+      let updatedAvatarUrl = selectedEmployee.avatar;
+
+      if (tempAvatarFile && selectedEmployee._id) {
+        const formData = new FormData();
+        formData.append("file", tempAvatarFile);
+        formData.append("_id", selectedEmployee._id);
+
+        const uploadRes = await fetch("/api/upload-avatar", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+        updatedAvatarUrl = `${uploadData.url}?t=${Date.now()}`;
+        setPreviewUrl(updatedAvatarUrl);
+      }
+
+      const res = await fetch(`/api/employee/${selectedEmployee._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...selectedEmployee,
+          avatar: updatedAvatarUrl,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`API Error: ${res.status} - ${text}`);
+      }
+
+      const updated = await res.json();
+
+      setSelectedEmployee(updated);
+
+      fetchEmployees();
+      toast.custom(() => (
+        <ToastCustom message="Cập nhật thành công 🎉" bg="bg-green-500" />
+      ));
+      setEditMode(false);
+      setTempAvatarFile(null);
+    } catch (err) {
+      console.error("Lỗi khi cập nhật nhân sự:", err);
+      toast.custom(() => (
+        <ToastCustom message="Lỗi khi cập nhật nhân sự 😢" bg="bg-red-500" />
+      ));
+    } finally {
+      setLoadingUpdate(false);
+    }
   };
 
   const renderPageNumbers = () => {
@@ -257,6 +395,8 @@ export default function EmployeeManagement() {
       return;
     }
 
+    setLoadingAdd(true);
+
     try {
       const res = await fetch("/api/employee", {
         method: "POST",
@@ -281,6 +421,8 @@ export default function EmployeeManagement() {
       toast.custom((t) => (
         <ToastCustom message="Lỗi khi thêm nhân sự 😢" bg="bg-red-500" />
       ));
+    } finally {
+      setLoadingAdd(false);
     }
   };
 
@@ -315,6 +457,20 @@ export default function EmployeeManagement() {
       clearTimeout(handler);
     };
   }, [search]);
+
+  useEffect(() => {
+    if (tempAvatarFile) {
+      const objectUrl = URL.createObjectURL(tempAvatarFile);
+      setPreviewUrl(objectUrl);
+
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+        setPreviewUrl(null);
+      };
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [tempAvatarFile]);
 
   return (
     <div className="max-w-5xl mx-auto mb-4">
@@ -544,7 +700,7 @@ export default function EmployeeManagement() {
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Chọn bảo hiểm" />
+                    <SelectValue placeholder="" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Có">Có</SelectItem>
@@ -566,7 +722,12 @@ export default function EmployeeManagement() {
               </div>
             </div>
             <div className="shrink-0 mt-4">
-              <Button onClick={handleAddEmployee}>Lưu</Button>
+              <Button onClick={handleAddEmployee} disabled={loadingAdd}>
+                {loadingAdd && (
+                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2" />
+                )}
+                {loadingAdd ? "Đang lưu..." : "Lưu"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -604,6 +765,8 @@ export default function EmployeeManagement() {
                         onClick={() => {
                           setSelectedEmployee(emp);
                           setEditMode(false);
+                          setTempAvatarFile(null);
+                          setPreviewUrl(null);
                         }}
                         className="cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition"
                       >
@@ -613,7 +776,7 @@ export default function EmployeeManagement() {
                             alt={emp.name}
                             width={50}
                             height={50}
-                            className="rounded-md border object-cover"
+                            className="w-[45px] h-[45px] object-cover rounded-md border"
                           />
                         </td>
                         {/* <td className="py-2 px-2 break-words">{emp.id}</td> */}
@@ -638,47 +801,149 @@ export default function EmployeeManagement() {
                           />
                           <Trash2
                             className="w-5 h-5 cursor-pointer text-red-500"
-                            onClick={() => handleDelete(emp.id)}
+                            onClick={() => emp._id && handleDelete(emp._id)}
                           />
                         </div>
                       </DialogHeader>
                       <div className="flex flex-col items-center gap-4 mt-4 flex-1 overflow-y-auto pr-2">
-                        <Image
-                          src={emp.avatar}
-                          alt={emp.name}
-                          width={200}
-                          height={200}
-                          className="border object-cover rounded-md"
-                        />
+                        <div
+                          className={`relative group ${
+                            editMode ? "cursor-pointer" : "cursor-default"
+                          }`}
+                          onClick={
+                            editMode
+                              ? () => fileInputRef.current?.click()
+                              : undefined
+                          }
+                        >
+                          <Image
+                            src={
+                              previewUrl ||
+                              selectedEmployee?.avatar ||
+                              "/avatar-user.jpg"
+                            }
+                            alt={selectedEmployee?.name || ""}
+                            width={150}
+                            height={150}
+                            className="w-[150px] h-[150px] border object-cover rounded-md"
+                          />
+                          {editMode && (
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 text-white flex items-center justify-center text-sm rounded-md transition">
+                              Thay ảnh
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file && selectedEmployee) {
+                                const previewUrl = URL.createObjectURL(file);
+                                // setSelectedEmployee({
+                                //   ...selectedEmployee,
+                                //   avatar: previewUrl, // show preview
+                                // });
+                                setTempAvatarFile(file);
+                              }
+                            }}
+                          />
+                        </div>
                         <div className="grid grid-cols-1 gap-2 w-full text-sm break-words whitespace-normal">
-                          {Object.entries(selectedEmployee || {}).map(
-                            ([key, value]) => (
-                              <p key={key} className="break-words">
-                                <strong>
-                                  {fieldLabels[key as keyof Employee] || key}:
+                          {visibleFields.map((key) => {
+                            const rawValue = selectedEmployee?.[key];
+                            const isDateField = [
+                              "birthDate",
+                              "probationDate",
+                              "officialDate",
+                            ].includes(key);
+
+                            const isGenderField = key === "gender";
+                            const isInsuranceField = (key: keyof Employee) =>
+                              key === "insurance";
+
+                            const value = Array.isArray(rawValue)
+                              ? rawValue[0]
+                              : rawValue;
+
+                            const displayValue =
+                              isDateField && value
+                                ? dayjs(value).format("DD-MM-YYYY")
+                                : value;
+
+                            return (
+                              <div key={key} className="break-words">
+                                <strong className="text-foreground">
+                                  {fieldLabels[key] || key}:
                                 </strong>
                                 {editMode ? (
-                                  <Input
-                                    className="mt-1"
-                                    value={value as string}
-                                    onChange={(e) =>
-                                      handleUpdateField(
-                                        key as keyof Employee,
-                                        e.target.value
-                                      )
-                                    }
-                                  />
+                                  isDateField ? (
+                                    <CustomCalendar
+                                      value={value ?? ""}
+                                      onChange={(date) =>
+                                        handleUpdateField(key, date)
+                                      }
+                                    />
+                                  ) : isGenderField ? (
+                                    <Select
+                                      value={value ?? ""}
+                                      onValueChange={(val) =>
+                                        handleUpdateField(key, val)
+                                      }
+                                    >
+                                      <SelectTrigger className="mt-1 w-full">
+                                        <SelectValue placeholder="" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Nam">Nam</SelectItem>
+                                        <SelectItem value="Nữ">Nữ</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : isInsuranceField(key) ? (
+                                    <Select
+                                      value={value ?? ""}
+                                      onValueChange={(val) =>
+                                        handleUpdateField(key, val)
+                                      }
+                                    >
+                                      <SelectTrigger className="mt-1 w-full">
+                                        <SelectValue placeholder="" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Có">Có</SelectItem>
+                                        <SelectItem value="Không">
+                                          Không
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Input
+                                      className="mt-1"
+                                      value={value ?? ""}
+                                      onChange={(e) =>
+                                        handleUpdateField(key, e.target.value)
+                                      }
+                                    />
+                                  )
                                 ) : (
-                                  ` ${value}`
+                                  ` ${displayValue ?? ""}`
                                 )}
-                              </p>
-                            )
-                          )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                       {editMode && (
-                        <Button className="mt-4" onClick={handleSaveEdit}>
-                          Lưu thay đổi
+                        <Button
+                          className="mt-4"
+                          onClick={handleSaveEdit}
+                          disabled={loadingUpdate}
+                        >
+                          {loadingUpdate && (
+                            <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2" />
+                          )}
+                          {loadingUpdate ? "Đang lưu..." : "Lưu thay đổi"}
                         </Button>
                       )}
                     </DialogContent>
