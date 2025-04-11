@@ -21,26 +21,31 @@ export interface IEmployee extends Document {
   permissions: string[];
 }
 
-const EmployeeSchema: Schema = new Schema<IEmployee>({
-  id: { type: String },
-  name: { type: String, required: true },
-  position: { type: String },
-  department: { type: String },
-  avatar: { type: String },
-  gender: { type: String, required: true },
-  birthDate: { type: Date, required: true },
-  phone: { type: String, required: true },
-  email: { type: String, unique: true },
-  probationDate: { type: Date },
-  officialDate: { type: Date },
-  contractType: { type: String },
-  seniority: { type: String },
-  insurance: { type: String },
-  status: { type: String },
-  password: { type: String, required: true },
-  role: { type: String, enum: ["admin", "user"], default: "user" },
-  permissions: [{ type: String }],
-});
+const EmployeeSchema: Schema = new Schema<IEmployee>(
+  {
+    id: { type: String },
+    name: { type: String, required: true },
+    position: { type: String },
+    department: { type: String },
+    avatar: { type: String },
+    gender: { type: String, required: true },
+    birthDate: { type: Date, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, unique: true },
+    probationDate: { type: Date },
+    officialDate: { type: Date },
+    contractType: { type: String },
+    seniority: { type: String },
+    insurance: { type: String },
+    status: { type: String },
+    password: { type: String, required: true },
+    role: { type: String, enum: ["admin", "user"], default: "user" },
+    permissions: [{ type: String }],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Employee =
   models.Employee || model<IEmployee>("Employee", EmployeeSchema);

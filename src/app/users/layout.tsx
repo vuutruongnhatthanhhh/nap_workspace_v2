@@ -1,7 +1,13 @@
 import Header from "@/components/layout/Header";
 import Menu from "@/components/layout/Menu";
 import Footer from "@/components/layout/Footer";
-import { CircleHelp, LayoutDashboard, User } from "lucide-react";
+import {
+  CircleHelp,
+  LayoutDashboard,
+  User,
+  Badge,
+  Building,
+} from "lucide-react";
 
 const userMenu = [
   {
@@ -14,6 +20,16 @@ const userMenu = [
     name: "Quản lý nhân sự",
     icon: <User size={20} />,
     path: "/users/manage",
+  },
+  {
+    name: "Chức vụ",
+    icon: <Badge size={20} />,
+    path: "/users/position",
+  },
+  {
+    name: "Phòng ban",
+    icon: <Building size={20} />,
+    path: "/users/department",
   },
 ];
 

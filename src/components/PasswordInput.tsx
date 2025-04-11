@@ -24,6 +24,7 @@ export default function PasswordInput({
   return (
     <div className="relative">
       <input
+        maxLength={70}
         type={show ? "text" : "password"}
         value={value}
         onChange={onChange}

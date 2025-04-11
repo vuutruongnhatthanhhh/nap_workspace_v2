@@ -1,9 +1,7 @@
 import { mkdir, unlinkSync } from "fs";
-import { writeFile } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { NextRequest, NextResponse } from "next/server";
-import fg from "fast-glob";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -20,25 +18,25 @@ export async function POST(req: NextRequest) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  const uploadDir = path.join(process.cwd(), "public/uploads");
+  const uploadDir = path.join(process.cwd(), "public", "upload-avt");
 
-  // Tạo thư mục nếu chưa tồn tại
+  // create folder if not exists
   await new Promise<void>((resolve, reject) => {
     mkdir(uploadDir, { recursive: true }, (err) =>
       err ? reject(err) : resolve()
     );
   });
 
-  // Xoá ảnh cũ có cùng id nhưng khác đuôi (jpg, png, ...)
+  // delete old image
   //   const existingFiles = await fg(`${uploadDir}/${mongoId}.*`);
   //   existingFiles.forEach((f) => unlinkSync(f));
 
-  // Ghi đè ảnh mới định dạng webp
+  // use .webp
   const fileName = `${mongoId}.webp`;
   const filePath = path.join(uploadDir, fileName);
 
   await sharp(buffer).webp({ quality: 80 }).toFile(filePath);
 
-  const fileUrl = `/uploads/${fileName}`;
+  const fileUrl = `/upload-avt/${fileName}`;
   return NextResponse.json({ url: fileUrl }, { status: 200 });
 }
